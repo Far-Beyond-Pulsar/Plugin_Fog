@@ -7,19 +7,14 @@
 //! - Their rows ([`GlobalFogSourceRow`], [`LocalFogSourceRow`]): the media
 //!   rows SceneDB derives from the authored values; the plugin's row join
 //!   places a local volume at its owner (`helio_pass_volumetric_fog::scene_rows`).
-//! - The registrations of the plugin's Helio feature
-//!   (`helio_pass_volumetric_fog::FogFeature`: the volumetric medium, the
+//! - The plugin's Helio feature ([`render_features`]:
+//!   `helio_pass_volumetric_fog::FogFeature`, the volumetric medium, the
 //!   frame's participating media, and its composite) and its scene rows
-//!   with the engine.
+//!   ([`register_columns`], [`derivation`]).
 //!
-//! Everything registers through `inventory` once the crate is linked: hosts link it
-//! without naming it (a game built for a project links the runtime modules
-//! of the plugins its `Pulsar.toml` enables, the editor every installed
-//! plugin through `installed_plugins`; `pulsar_plugins`) and know no fog type.
-
-// The plugin's descriptor (`../pulsar-plugin.toml`): linking this crate
-// installs the plugin; a project enables it or not (`pulsar_plugins`).
-pulsar_plugins::installed!("../pulsar-plugin.toml");
+//! This crate registers nothing itself: the plugin's root crate
+//! (`fog_plugin`) submits the component classes, the scene rows and the
+//! feature, in one place.
 
 pub mod component;
 pub mod ground;
@@ -139,12 +134,14 @@ derived_row!(
     local_fog_clear
 );
 
-fn register_columns(store: &mut SceneGpuStore, device: &std::sync::Arc<wgpu::Device>) {
+/// Registers the source rows' SceneDB columns the row join reads.
+pub fn register_columns(store: &mut SceneGpuStore, device: &std::sync::Arc<wgpu::Device>) {
     GlobalFogSourceRow::register_gpu_columns_growable(store, 4, device);
     LocalFogSourceRow::register_gpu_columns_growable(store, 16, device);
 }
 
-fn derivation(
+/// The plugin's row join over the engine's rows (`scene_rows`).
+pub fn derivation(
     device: &wgpu::Device,
     keys: helio_scene_join::RowJoinKeys,
 ) -> Box<dyn helio_scene_join::SceneDerivation> {
@@ -158,25 +155,9 @@ fn derivation(
     ))
 }
 
-inventory::submit! {
-    engine_backend::scene::helio_bridge::SceneRowsRegistration {
-        origin: pulsar_plugins::origin!(),
-        register_columns,
-        derivation,
-    }
-}
-
 /// Fog's feature: the volumetric medium and its composite.
-fn render_features() -> helio_feature_api::FeatureSet {
+pub fn render_features() -> helio_feature_api::FeatureSet {
     helio_feature_api::FeatureSet::new().with(helio_pass_volumetric_fog::FogFeature)
-}
-
-inventory::submit! {
-    engine_backend::subsystems::render::RenderFeatureRegistration {
-        origin: pulsar_plugins::origin!(),
-        features: render_features,
-        configure: |config| config,
-    }
 }
 
 #[cfg(test)]
@@ -212,16 +193,5 @@ mod tests {
         assert_eq!(enabled(&GlobalFogSourceRow::of(&fog)), 1);
         fog.enabled = false;
         assert_eq!(enabled(&GlobalFogSourceRow::of(&fog)), 0);
-    }
-
-    #[test]
-    fn registers_its_feature() {
-        let features =
-            engine_backend::subsystems::render::helio_renderer::render_features::plugin_features();
-        assert!(
-            features.ids().contains(&"helio.fog"),
-            "features: {:?}",
-            features.ids()
-        );
     }
 }
