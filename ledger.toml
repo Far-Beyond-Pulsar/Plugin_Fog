@@ -1,0 +1,180 @@
+# The fog plugin's rows of the SceneDB closure ledger (Pulsar-Native#1035):
+# its classes, GPU schemas, buffers, pass crates and call sites. A plugin owns
+# the rows of what it ships (Pulsar-Native#1606); `cargo test -p scene_inventory`
+# in a Pulsar-Native checkout recomputes every fact column, checks the human
+# columns, and fails on a missing, stale or misplaced row. The columns are
+# described in Pulsar-Native's crates/core/scene_inventory/ledger.toml.
+
+# ── Exposed component classes ───────────────────────────────────
+
+[[class]]
+name = "GlobalFogComponent"
+category = "Rendering"
+world_registered = true
+own_gpu_columns = true
+owner = "fog_component::component"
+disposition = "render, Phase 4. Its derived source row is written on every insert, write, removal and replay; the environment join gates and places it into global_fog_media, which volumetric fog reads. The behavior no longer queues rows"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs; plugins/installed/tests/render_acceptance.rs (environment_components_reach_the_frame)"
+status = "verified"
+
+[[class]]
+name = "LocalFogVolumeComponent"
+category = "Rendering"
+world_registered = true
+own_gpu_columns = true
+owner = "fog_component::component"
+disposition = "render, Phase 4. Its derived source row is written on every insert, write, removal and replay; the environment join gates and places it into local_fog_media, which volumetric fog reads. The behavior no longer queues rows"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs; plugins/installed/tests/render_acceptance.rs (environment_components_reach_the_frame)"
+status = "verified"
+
+# ── GPU-bearing schemas ─────────────────────────────────────────
+
+[[schema]]
+type = "GlobalFogComponentGpuMirror"
+path = "fog_component::component::GlobalFogComponentGpuMirror"
+buffers = []
+clears_on_remove = true
+releases_var_len = false
+registered = false
+writer = "none: the generated companion uploads a GPU row only for an #[engine_class(gpu_rows)] class (Phase 4); no engine class opts in"
+owner = "fog_component::component"
+disposition = "keep as a CPU mapping type (LightComponent's derived LightSourceRow is built from its mirror); nothing is uploaded"
+target_contract = "Phase 1; 03-gpu-reflection-and-rendering.md"
+test = "crates/core/engine_class_derive/tests/gpu_mirror_derive.rs (without_gpu_rows_the_companion_uploads_nothing)"
+status = "verified"
+
+[[schema]]
+type = "LocalFogVolumeComponentGpuMirror"
+path = "fog_component::component::LocalFogVolumeComponentGpuMirror"
+buffers = []
+clears_on_remove = true
+releases_var_len = false
+registered = false
+writer = "none: the generated companion uploads a GPU row only for an #[engine_class(gpu_rows)] class (Phase 4); no engine class opts in"
+owner = "fog_component::component"
+disposition = "keep as a CPU mapping type (LightComponent's derived LightSourceRow is built from its mirror); nothing is uploaded"
+target_contract = "Phase 1; 03-gpu-reflection-and-rendering.md"
+test = "crates/core/engine_class_derive/tests/gpu_mirror_derive.rs (without_gpu_rows_the_companion_uploads_nothing)"
+status = "verified"
+
+[[schema]]
+type = "GlobalFogComponent"
+path = "fog_component::component::GlobalFogComponent"
+buffers = ["global_fog_media"]
+clears_on_remove = true
+releases_var_len = false
+registered = false
+writer = "the authored value's SceneDB GPU dispatch is its derived GlobalFogSourceRow (environment_rows), on every insert, write, removal and replay; the generated companion uploads nothing (Phase 4)"
+owner = "fog_component::component"
+disposition = "keep: the authored type's GPU row is GlobalFogSourceRow, the environment join's input"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs"
+status = "verified"
+
+[[schema]]
+type = "LocalFogVolumeComponent"
+path = "fog_component::component::LocalFogVolumeComponent"
+buffers = ["local_fog_media"]
+clears_on_remove = true
+releases_var_len = false
+registered = false
+writer = "the authored value's SceneDB GPU dispatch is its derived LocalFogSourceRow (environment_rows), on every insert, write, removal and replay; the generated companion uploads nothing (Phase 4)"
+owner = "fog_component::component"
+disposition = "keep: the authored type's GPU row is LocalFogSourceRow, the environment join's input"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs"
+status = "verified"
+
+[[schema]]
+type = "GlobalFogSourceRow"
+path = "fog_component::GlobalFogSourceRow"
+buffers = ["global_fog_sources"]
+clears_on_remove = true
+releases_var_len = false
+registered = true
+writer = "GlobalFogComponent's derived GPU registration (the pass GlobalFogComponent medium, enabled from the authored flag), on every insert, write, removal and replay"
+owner = "fog_component"
+disposition = "keep: the environment join's global_fog_media input (Phase 4)"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs"
+status = "verified"
+
+[[schema]]
+type = "LocalFogSourceRow"
+path = "fog_component::LocalFogSourceRow"
+buffers = ["local_fog_sources"]
+clears_on_remove = true
+releases_var_len = false
+registered = true
+writer = "LocalFogVolumeComponent's derived GPU registration (the local box size, then the medium and edge fade; placed from the owner's transform by the join), on every insert, write, removal and replay"
+owner = "fog_component"
+disposition = "keep: the environment join's local_fog_media input (Phase 4)"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs"
+status = "verified"
+
+# ── GPU buffer keys ─────────────────────────────────────────────
+
+[[buffer]]
+key = "global_fog_media"
+producers = ["GlobalFogComponent"]
+consumers = ["helio-pass-volumetric-fog"]
+owner = "helio-scene-derivations environment join (execution output, one row per component instance)"
+disposition = "keep: helio-pass-volumetric-fog and helio-pass-postprocess (fog composite) read it through key-string helpers the source scan does not list as consumers; the join gates on owner, generation and visibility"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs; plugins/installed/tests/render_acceptance.rs (environment_components_reach_the_frame)"
+status = "verified"
+
+[[buffer]]
+key = "local_fog_media"
+producers = ["LocalFogVolumeComponent"]
+consumers = ["helio-pass-volumetric-fog"]
+owner = "helio-scene-derivations environment join (execution output, one row per component instance)"
+disposition = "keep: helio-pass-volumetric-fog and helio-pass-postprocess (fog composite) read it through key-string helpers the source scan does not list as consumers; the join places the box from the owner's transform"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs; plugins/installed/tests/render_acceptance.rs (environment_components_reach_the_frame)"
+status = "verified"
+
+[[buffer]]
+key = "global_fog_sources"
+producers = ["GlobalFogSourceRow"]
+consumers = []
+owner = "helio_component::components::environment_rows"
+disposition = "keep: GlobalFogComponent in its owner's space, derived on every write; the environment join reads it into global_fog_media"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs"
+status = "verified"
+
+[[buffer]]
+key = "local_fog_sources"
+producers = ["LocalFogSourceRow"]
+consumers = []
+owner = "helio_component::components::environment_rows"
+disposition = "keep: LocalFogVolumeComponent in its owner's space, derived on every write; the environment join reads it into local_fog_media"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "plugins/vendor/fog/tests/scene_rows.rs"
+status = "verified"
+
+# ── Render pass crates ──────────────────────────────────────────
+
+[[pass]]
+crate = "helio-pass-volumetric-fog"
+in_default_graph = false
+reads = ["global_fog_media", "local_fog_media"]
+owner = "helio-presets (mapping); helio-pass-volumetric-fog (algorithm)"
+disposition = "keep: reads the fog's media rows, derived from authored components (Phase 4); no post-process input since fog left post (p17)"
+target_contract = "Phase 6; 03-gpu-reflection-and-rendering.md"
+test = "plugins/installed/tests/render_acceptance.rs (environment_components_reach_the_frame); plugins/vendor/fog/tests/scene_rows.rs; plugins/installed/tests/render_acceptance.rs (every_pass_of_the_editor_graph_runs)"
+status = "verified"
+
+[[buffer]]
+key = "volumetric_fog_settings"
+producers = ["VolumetricFogSettingsComponent"]
+consumers = []
+owner = "volumetric-fog pass type; writer not identified"
+disposition = "outside the engine (Phase 4): no authored source; the pass uses its defaults"
+target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
+test = "none: consumer not identified"
+status = "out-of-scope"
