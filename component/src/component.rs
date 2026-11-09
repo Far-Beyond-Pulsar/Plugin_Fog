@@ -2,7 +2,7 @@
 //! pass through their derived rows ([`crate::GlobalFogSourceRow`],
 //! [`crate::LocalFogSourceRow`]) and the plugin's row join; nothing here
 //! writes pass rows.
-use engine_class_derive::{engine_class, register_world_component};
+use engine_class_derive::{engine_class, world_component};
 use helio_pass_volumetric_fog::GlobalFogRow as GlobalMedium;
 use helio_pass_volumetric_fog::components::fog_mode;
 use pulsar_reflection::Reflectable;
@@ -150,8 +150,9 @@ impl Default for LocalFogVolumeComponent {
     }
 }
 
-#[register_world_component]
+// The plugin's root crate registers the classes.
+#[world_component]
 impl GlobalFogComponent {}
 
-#[register_world_component]
+#[world_component]
 impl LocalFogVolumeComponent {}

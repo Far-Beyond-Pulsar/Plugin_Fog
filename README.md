@@ -19,13 +19,16 @@ draw phases and api crates.
 
 | Crate | Path | What |
 |---|---|---|
-| `fog_component` | `component/` | Fog (pulsar.fog): the global fog and local fog volume components, their rows and the registrations of the plugin's Helio feature (volumetric fog and its composite) |
-| `fog_plugin` | `editor/` | Fog (pulsar.fog): the editor plugin -- its metadata, over the plugin's component crate |
+| `fog_plugin` | `./` (`src/`) | The plugin's root crate: the one place it registers everything it contributes (`src/runtime.rs`; `src/editor.rs` with the `editor` feature). Its integration tests are in `tests/`. |
+| `fog_component` | `component/` | Fog (pulsar.fog): the global fog and local fog volume components, their rows, their row join and the plugin's Helio feature set (volumetric fog and its composite) |
+| `fog_editor` | `editor/` | Fog (pulsar.fog): the editor crate -- the environment mixer's global fog and local fog volume entries |
 | `fog-examples` | `examples/` | The fog plugin's standalone hosts on Helio: the volumetric fog demo |
 | `helio-pass-volumetric-fog` | `feature/` | Helio pass: volumetric fog integration and its composite over the scene colour |
 
-- **Runtime module** (what a game built for a project links): `fog_component`.
-- **Editor module** (what the editor links in addition): `fog_plugin`.
+- **Root crate** `fog_plugin`: the only crate that registers anything (the
+  component classes, their scene rows, the Helio feature; with `editor`, the
+  environment mixer's fog entries). A game links it without `editor`; the
+  editor links it with. Other plugins never depend on it.
 - **Requires**: nothing. A project enables or disables the plugin in its
   `Pulsar.toml` (`[plugins]`); disabled, the kind is absent and the frame
   draws without it.
@@ -43,8 +46,8 @@ only inside a Pulsar-Native checkout:
 ```bash
 git clone --recursive https://github.com/Far-Beyond-Pulsar/Pulsar-Native
 cd Pulsar-Native
-cargo check -p fog_component -p fog_plugin -p fog-examples -p helio-pass-volumetric-fog --tests
-cargo test -p fog_component -p helio-pass-volumetric-fog
+cargo check -p fog_component -p fog_editor -p fog_plugin --features fog_plugin/editor -p fog-examples -p helio-pass-volumetric-fog --tests
+cargo test -p fog_component -p fog_plugin -p helio-pass-volumetric-fog
 ```
 
 Suites that render real frames need a GPU; CI leaves them out by name
