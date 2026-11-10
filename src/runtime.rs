@@ -18,7 +18,7 @@ inventory::submit! {
         origin: pulsar_plugins::origin!(),
         name: "fog.rows",
         register_columns: fog_component::register_columns,
-        derivation: fog_component::derivation,
+        derivation: Some(fog_component::derivation),
     }
 }
 
