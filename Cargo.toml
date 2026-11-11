@@ -35,6 +35,9 @@ helio-scene-join = { workspace = true }
 pulsar_scenedb = { workspace = true }
 bytemuck = { workspace = true }
 wgpu = { workspace = true }
+# The render graph node tests (`tests/graph_node.rs`).
+helio-graph-asset = { workspace = true }
+helio-presets = { workspace = true }
 
 [lints]
 workspace = true
