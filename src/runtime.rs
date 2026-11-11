@@ -2,34 +2,36 @@
 //! contribution, grouped by the engine seam it plugs into.
 
 use engine_backend::scene::SceneRowsRegistration;
+use engine_backend::scene::{ClassSpec, ComponentsBuilder};
 use engine_backend::subsystems::render::RenderFeatureRegistration;
 use fog_component::{GlobalFogComponent, LocalFogVolumeComponent};
 
-// ── Component classes ───────────────────────────────────────────────────────
+/// Everything the plugin registers for a game (and the editor).
+pub(crate) fn build(p: &mut pulsar_plugins::PluginBuilder) {
+    // ── Component classes ───────────────────────────────────────────────────
 
-pulsar_world_registry::submit_world_component!(GlobalFogComponent, LocalFogVolumeComponent);
+    p.components()
+        .class::<GlobalFogComponent>(ClassSpec::default())
+        .class::<LocalFogVolumeComponent>(ClassSpec::default());
 
-// ── Rendering ───────────────────────────────────────────────────────────────
+    // ── Rendering ───────────────────────────────────────────────────────────
 
-// The media's source rows and the row join that places a local volume at
-// its owner.
-inventory::submit! {
-    SceneRowsRegistration {
-        origin: pulsar_plugins::origin!(),
+    // The media's source rows and the row join that places a local volume at
+    // its owner.
+    p.add(SceneRowsRegistration {
+        origin: p.origin(),
         name: "fog.rows",
         register_columns: fog_component::register_columns,
         derivation: Some(fog_component::derivation),
-    }
-}
+    });
 
-// The volumetric medium and its composite; they read no project settings
-// through the renderer config.
-inventory::submit! {
-    RenderFeatureRegistration {
-        origin: pulsar_plugins::origin!(),
+    // The volumetric medium and its composite; they read no project settings
+    // through the renderer config.
+    p.add(RenderFeatureRegistration {
+        origin: p.origin(),
         features: fog_component::render_features,
         configure: |config| config,
-    }
+    });
 }
 
 #[cfg(test)]

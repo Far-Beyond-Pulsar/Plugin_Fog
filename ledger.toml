@@ -140,7 +140,7 @@ status = "verified"
 [[buffer]]
 key = "global_fog_sources"
 producers = ["GlobalFogSourceRow"]
-consumers = []
+consumers = ["fog_component"]
 owner = "helio_component::components::environment_rows"
 disposition = "keep: GlobalFogComponent in its owner's space, derived on every write; the environment join reads it into global_fog_media"
 target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
@@ -150,7 +150,7 @@ status = "verified"
 [[buffer]]
 key = "local_fog_sources"
 producers = ["LocalFogSourceRow"]
-consumers = []
+consumers = ["fog_component"]
 owner = "helio_component::components::environment_rows"
 disposition = "keep: LocalFogVolumeComponent in its owner's space, derived on every write; the environment join reads it into local_fog_media"
 target_contract = "Phase 4; 09-component-structure-and-graph-boundary.md"
@@ -162,7 +162,7 @@ status = "verified"
 [[pass]]
 crate = "helio-pass-volumetric-fog"
 in_default_graph = false
-reads = ["global_fog_media", "local_fog_media"]
+reads = ["global_fog_media", "local_fog_media", "scene_lights"]
 owner = "helio-presets (mapping); helio-pass-volumetric-fog (algorithm)"
 disposition = "keep: reads the fog's media rows, derived from authored components (Phase 4); no post-process input since fog left post (p17)"
 target_contract = "Phase 6; 03-gpu-reflection-and-rendering.md"

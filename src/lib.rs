@@ -6,7 +6,8 @@
 //! participating media and its composite), `fog_component` (the global fog
 //! and local fog volume components, their rows and their row join) and
 //! `fog_editor` (the environment mixer's entries). None of them registers a
-//! contribution; this crate imports them and submits their registrations, so
+//! contribution; this crate imports them and registers them
+//! through its [`build`], so
 //! this file and the two modules below are the whole list of what the
 //! plugin brings:
 //!
@@ -16,7 +17,7 @@
 //!   environment mixer's global fog and local fog volumes.
 //!
 //! Every registration names this crate as its origin
-//! (`pulsar_plugins::origin!()`), so the plugin gate skips all of them while
+//! (`p.origin()`), so the plugin gate skips all of them while
 //! a project disables the plugin, and the plugin catalog lists them under
 //! `pulsar.fog`. Other plugins never depend on this crate; hosts reach it
 //! through the installed set or a generated game, a game without the
@@ -24,7 +25,15 @@
 
 // The plugin's descriptor (`pulsar-plugin.toml`): linking this crate
 // installs the plugin; a project enables it or not (`pulsar_plugins`).
-pulsar_plugins::installed!("pulsar-plugin.toml");
+pulsar_plugins::installed!("pulsar-plugin.toml", build);
+
+/// Everything the plugin registers (runtime always, editor with the `editor`
+/// feature).
+pub fn build(p: &mut pulsar_plugins::PluginBuilder) {
+    runtime::build(p);
+    #[cfg(feature = "editor")]
+    editor::build(p);
+}
 
 pub use fog_component;
 #[cfg(feature = "editor")]

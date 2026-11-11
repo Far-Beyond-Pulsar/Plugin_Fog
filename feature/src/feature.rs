@@ -22,6 +22,10 @@ impl Feature for FogFeature {
         // What shader hot reload may swap without rebuilding the graph.
         registrar.swappable::<VolumetricFogPass>();
         registrar.swappable::<FogCompositePass>();
+        registrar.consumes(helio_light_api::SCENE_LIGHTS);
+        registrar.consumes(crate::GLOBAL_FOG_MEDIA);
+        registrar.consumes(crate::LOCAL_FOG_MEDIA);
+        registrar.consumes(crate::VOLUMETRIC_FOG_SETTINGS);
         registrar.node(
             pass_node(
                 "volumetric_fog",
