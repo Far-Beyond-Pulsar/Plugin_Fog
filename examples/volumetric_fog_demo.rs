@@ -35,10 +35,7 @@ use common::{
     spawn_local_fog, spawn_material, spawn_mesh, spawn_object, update_light, volumetric_light,
     SHADOW_BASES,
 };
-use helio::{
-    required_experimental_features, required_wgpu_features, required_wgpu_limits, Camera, Renderer,
-    RendererConfig,
-};
+use helio::{Camera, Renderer, RendererConfig};
 use helio_pass_volumetric_fog::components::fog_mode;
 use helio_pass_volumetric_fog::host_rows::GlobalFogComponent;
 use pulsar_scenedb::SceneDb;
@@ -454,7 +451,7 @@ fn build_scene(
     pulsar_scenedb::Entity,
 ) {
     let mut scene_db = new_scene_db_with_gpu_mirror(&device, &queue);
-    let mut renderer = if let Some(graphics) = graphics {
+    let renderer = if let Some(graphics) = graphics {
         build_default_renderer_with_context(&scene_db, graphics, config)
     } else {
         build_default_renderer(&scene_db, device.clone(), queue.clone(), config)

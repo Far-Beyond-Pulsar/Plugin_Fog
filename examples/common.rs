@@ -10,7 +10,6 @@ use helio_light_host::LightComponent;
 use helio_mats::host_rows::MaterialComponent;
 use helio_mesh_api::{MeshUpload, PackedVertex};
 use helio_mesh_host::{MeshComponent, StaticObjectComponent};
-use helio_pass_sky::host_rows::AtmosphereComponent;
 use pulsar_scenedb::{Entity, World};
 use std::sync::Arc;
 
