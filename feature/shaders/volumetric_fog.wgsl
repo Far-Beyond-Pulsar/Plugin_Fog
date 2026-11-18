@@ -304,6 +304,10 @@ fn medium_hash_of(seed: u32, m: WorldMedium) -> u32 {
     return hash_vector(h, vec4<f32>(m.emission, 0.0));
 }
 
+fn primary_scattering_light(light: GpuLight) -> bool {
+    return light_space(light) == 0u && light.god_rays_enabled != 0u && light_active(light);
+}
+
 // Parallel compaction of live rows, then a rank sort so the compact lists are
 // in row order regardless of atomic ordering. Media counts past a list's
 // capacity are still counted; consumers then scan every row instead of losing
@@ -343,7 +347,7 @@ fn cs_classify(@builtin(local_invocation_index) lid: u32) {
     let light_end = min(light_begin + light_chunk, light_rows);
     var chunk_lights = 0u;
     for (var i = light_begin; i < light_end; i++) {
-        if lights[i].god_rays_enabled != 0u && light_active(lights[i]) {
+        if primary_scattering_light(lights[i]) {
             // Commutative combination: independent of scan order.
             atomicAdd(&wg_light_hash, light_hash_of(i, lights[i]));
             chunk_lights++;
@@ -363,7 +367,7 @@ fn cs_classify(@builtin(local_invocation_index) lid: u32) {
     workgroupBarrier();
     var light_slot = wg_light_offsets[lid];
     for (var i = light_begin; i < light_end; i++) {
-        if lights[i].god_rays_enabled != 0u && light_active(lights[i]) {
+        if primary_scattering_light(lights[i]) {
             media_list.lights[light_slot] = i;
             light_slot++;
         }

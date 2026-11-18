@@ -26,6 +26,7 @@
 
 use helio_core::graph::{ResourceBuilder, ResourceSize};
 use helio_core::{PassContext, PrepareContext, RenderPass, ResourceKey, Result as HelioResult};
+use helio_portal_api::PORTAL_MASK;
 use pulsar_scenedb::gpu::BufferKey;
 
 /// Graph key of the fogged scene-linear image.
@@ -41,9 +42,11 @@ pub struct FogCompositePass {
     layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
     fallback_medium: wgpu::TextureView,
+    fallback_aperture: wgpu::TextureView,
     fallback_parameters: wgpu::Buffer,
     bind_group: Option<wgpu::BindGroup>,
     bind_group_key: Option<(
+        wgpu::TextureView,
         wgpu::TextureView,
         wgpu::TextureView,
         wgpu::TextureView,
@@ -121,6 +124,11 @@ impl FogCompositePass {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
+                texture(
+                    6,
+                    wgpu::TextureSampleType::Uint,
+                    wgpu::TextureViewDimension::D2,
+                ),
             ],
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -194,6 +202,7 @@ impl FogCompositePass {
             layout,
             sampler,
             fallback_medium,
+            fallback_aperture: helio_portal_api::empty_aperture_mask(device),
             fallback_parameters,
             bind_group: None,
             bind_group_key: None,
@@ -277,6 +286,7 @@ impl RenderPass for FogCompositePass {
         builder.read(self.input);
         builder.read(crate::FOG_ACCUM);
         builder.read(crate::FOG_PARAMETERS);
+        builder.read_optional(PORTAL_MASK);
         builder.write_color_raw(FOGGED_HDR, self.format, ResourceSize::MatchSurface);
     }
 
@@ -333,10 +343,15 @@ impl RenderPass for FogCompositePass {
             .registry
             .get::<&wgpu::Buffer>(ResourceKey::new(crate::FOG_PARAMETERS))
             .unwrap_or(&self.fallback_parameters);
+        let aperture = ctx
+            .registry
+            .texture_view(ResourceKey::new(PORTAL_MASK))
+            .unwrap_or(&self.fallback_aperture);
         let key = (
             input.clone(),
             ctx.depth.clone(),
             medium.clone(),
+            aperture.clone(),
             parameters.clone(),
             ctx.camera.clone(),
         );
@@ -368,6 +383,10 @@ impl RenderPass for FogCompositePass {
                     wgpu::BindGroupEntry {
                         binding: 5,
                         resource: wgpu::BindingResource::Sampler(&self.sampler),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 6,
+                        resource: wgpu::BindingResource::TextureView(aperture),
                     },
                 ],
             }));

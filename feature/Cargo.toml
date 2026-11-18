@@ -14,6 +14,7 @@ host-rows = ["dep:helio-components", "dep:pulsar_scenedb_derive", "dep:serde_jso
 
 [dependencies]
 helio-light-api = { workspace = true }
+helio-portal-api = { workspace = true }
 helio-components = { workspace = true, optional = true }
 pulsar_scenedb_derive = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }

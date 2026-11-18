@@ -37,6 +37,7 @@ struct FogParameters {
 @group(0) @binding(3) var scene_depth: texture_depth_2d;
 @group(0) @binding(4) var integrated_medium: texture_3d<f32>;
 @group(0) @binding(5) var medium_sampler: sampler;
+@group(0) @binding(6) var aperture_mask: texture_2d<u32>;
 
 struct VOut {
     @builtin(position) pos: vec4<f32>,
@@ -89,7 +90,12 @@ fn fs_composite(in: VOut) -> @location(0) vec4<f32> {
     }
     let depth_dims = vec2<f32>(textureDimensions(scene_depth));
     let depth_pixel = vec2<i32>(in.uv * depth_dims);
-    let raw_depth = textureLoad(scene_depth, depth_pixel, 0);
+    let aperture_dims = vec2<f32>(textureDimensions(aperture_mask));
+    let aperture = textureLoad(aperture_mask, vec2<i32>(in.uv * aperture_dims), 0).rg;
+    let scene_z = textureLoad(scene_depth, depth_pixel, 0);
+    // The primary froxel ray ends at the aperture. Beyond it, the ray lies
+    // in the destination space, where this camera's medium does not apply.
+    let raw_depth = max(scene_z, select(0.0, bitcast<f32>(aperture.g), aperture.r != 0u));
     // Slices are planes of constant view depth: convert the buffer value, do
     // not use radial distance.
     let view_depth = helio_view_depth(cameras[0].proj, raw_depth);
