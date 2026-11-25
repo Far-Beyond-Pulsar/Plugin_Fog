@@ -154,15 +154,15 @@ pub struct VolumetricFogPass {
     /// common case.
     active: bool,
     timing_query: Option<wgpu::QuerySet>,
-    classify_pipeline: wgpu::ComputePipeline,
-    resolve_pipeline: wgpu::ComputePipeline,
-    cull_pipeline: wgpu::ComputePipeline,
+    classify_pipeline: helio_core::shader::DeferredCompute,
+    resolve_pipeline: helio_core::shader::DeferredCompute,
+    cull_pipeline: helio_core::shader::DeferredCompute,
     resolve_bgl: wgpu::BindGroupLayout,
     classify_bgl: wgpu::BindGroupLayout,
     resolve_bg: Option<wgpu::BindGroup>,
     classify_bg: Option<wgpu::BindGroup>,
-    inject_pipeline: wgpu::ComputePipeline,
-    integrate_pipeline: wgpu::ComputePipeline,
+    inject_pipeline: helio_core::shader::DeferredCompute,
+    integrate_pipeline: helio_core::shader::DeferredCompute,
     inject_bgl: wgpu::BindGroupLayout,
     /// Integration camera, resolved range, active-grid metadata and sampler.
     ///
@@ -495,7 +495,7 @@ impl VolumetricFogPass {
             bind_group_layouts: &[Some(&resolve_bgl)],
             immediate_size: 0,
         });
-        let resolve_pipeline = helio_core::shader::create_compute_pipeline(
+        let resolve_pipeline = helio_core::shader::create_compute_pipeline_deferred(
             &device,
             wgpu::ComputePipelineDescriptor {
                 label: Some("Fog SceneDB Resolve"),
@@ -506,7 +506,7 @@ impl VolumetricFogPass {
                 cache: None,
             },
         );
-        let cull_pipeline = helio_core::shader::create_compute_pipeline(
+        let cull_pipeline = helio_core::shader::create_compute_pipeline_deferred(
             &device,
             wgpu::ComputePipelineDescriptor {
                 label: Some("Fog Cluster Lights"),
@@ -517,7 +517,7 @@ impl VolumetricFogPass {
                 cache: None,
             },
         );
-        let classify_pipeline = helio_core::shader::create_compute_pipeline(
+        let classify_pipeline = helio_core::shader::create_compute_pipeline_deferred(
             &device,
             wgpu::ComputePipelineDescriptor {
                 label: Some("Volumetric Fog Classify"),
@@ -528,7 +528,7 @@ impl VolumetricFogPass {
                 cache: None,
             },
         );
-        let inject_pipeline = helio_core::shader::create_compute_pipeline(
+        let inject_pipeline = helio_core::shader::create_compute_pipeline_deferred(
             &device,
             wgpu::ComputePipelineDescriptor {
                 label: Some("Volumetric Fog Inject"),
@@ -539,7 +539,7 @@ impl VolumetricFogPass {
                 cache: None,
             },
         );
-        let integrate_pipeline = helio_core::shader::create_compute_pipeline(
+        let integrate_pipeline = helio_core::shader::create_compute_pipeline_deferred(
             &device,
             wgpu::ComputePipelineDescriptor {
                 label: Some("Volumetric Fog Integrate"),
